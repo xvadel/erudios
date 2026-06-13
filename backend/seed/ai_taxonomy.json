@@ -1,0 +1,122 @@
+{
+  "topics": [
+    {
+      "slug": "artificial-intelligence",
+      "name": "Artificial Intelligence",
+      "parent_slug": null,
+      "description": "The broad field of creating machines that simulate human intelligence and reasoning.",
+      "difficulty": "beginner",
+      "estimated_hours": 3.0
+    },
+    {
+      "slug": "machine-learning",
+      "name": "Machine Learning",
+      "parent_slug": "artificial-intelligence",
+      "description": "Algorithms that learn from data to make predictions and decisions without being explicitly programmed.",
+      "difficulty": "intermediate",
+      "estimated_hours": 40.0
+    },
+    {
+      "slug": "deep-learning",
+      "name": "Deep Learning",
+      "parent_slug": "artificial-intelligence",
+      "description": "Neural network-based learning with multiple layers to model complex patterns in data.",
+      "difficulty": "advanced",
+      "estimated_hours": 60.0
+    },
+    {
+      "slug": "natural-language-processing",
+      "name": "Natural Language Processing",
+      "parent_slug": "artificial-intelligence",
+      "description": "Techniques for processing and understanding human language using computational methods.",
+      "difficulty": "advanced",
+      "estimated_hours": 50.0
+    },
+    {
+      "slug": "computer-vision",
+      "name": "Computer Vision",
+      "parent_slug": "artificial-intelligence",
+      "description": "Enabling machines to interpret and understand visual information from images and videos.",
+      "difficulty": "advanced",
+      "estimated_hours": 50.0
+    },
+    {
+      "slug": "reinforcement-learning",
+      "name": "Reinforcement Learning",
+      "parent_slug": "artificial-intelligence",
+      "description": "Training agents to make decisions by rewarding desired behaviors in an environment.",
+      "difficulty": "advanced",
+      "estimated_hours": 45.0
+    },
+    {
+      "slug": "mlops",
+      "name": "MLOps",
+      "parent_slug": "artificial-intelligence",
+      "description": "Practices for deploying, monitoring, and maintaining ML models in production.",
+      "difficulty": "intermediate",
+      "estimated_hours": 35.0
+    },
+    {
+      "slug": "agentic-ai",
+      "name": "Agentic AI",
+      "parent_slug": "artificial-intelligence",
+      "description": "Building autonomous AI systems that plan, reason, and take actions to achieve goals.",
+      "difficulty": "advanced",
+      "estimated_hours": 40.0
+    },
+    {
+      "slug": "rag",
+      "name": "Retrieval-Augmented Generation",
+      "parent_slug": "natural-language-processing",
+      "description": "Augmenting LLM generation with retrieved external knowledge to improve accuracy and reduce hallucinations.",
+      "difficulty": "advanced",
+      "estimated_hours": 30.0
+    },
+
+    {"slug": "supervised-learning", "name": "Supervised Learning", "parent_slug": "machine-learning", "description": "Training models on labeled examples to predict outputs for unseen inputs.", "difficulty": "intermediate", "estimated_hours": 12.0},
+    {"slug": "unsupervised-learning", "name": "Unsupervised Learning", "parent_slug": "machine-learning", "description": "Discovering patterns in unlabeled data through clustering, dimensionality reduction, and generative models.", "difficulty": "intermediate", "estimated_hours": 10.0},
+    {"slug": "feature-engineering", "name": "Feature Engineering", "parent_slug": "machine-learning", "description": "Transforming raw data into informative features that improve model performance.", "difficulty": "intermediate", "estimated_hours": 8.0},
+    {"slug": "model-evaluation", "name": "Model Evaluation", "parent_slug": "machine-learning", "description": "Techniques for measuring model performance: metrics, cross-validation, and error analysis.", "difficulty": "intermediate", "estimated_hours": 6.0},
+    {"slug": "ensemble-methods", "name": "Ensemble Methods", "parent_slug": "machine-learning", "description": "Combining multiple models (bagging, boosting, stacking) to improve predictions.", "difficulty": "intermediate", "estimated_hours": 8.0},
+
+    {"slug": "neural-networks-fundamentals", "name": "Neural Network Fundamentals", "parent_slug": "deep-learning", "description": "Perceptrons, activation functions, backpropagation, and gradient descent.", "difficulty": "intermediate", "estimated_hours": 10.0},
+    {"slug": "cnns", "name": "Convolutional Neural Networks", "parent_slug": "deep-learning", "description": "Specialized neural architectures for processing grid-like data such as images.", "difficulty": "advanced", "estimated_hours": 12.0},
+    {"slug": "rnns-lstms", "name": "RNNs & LSTMs", "parent_slug": "deep-learning", "description": "Recurrent architectures for sequential data including text, time series, and speech.", "difficulty": "advanced", "estimated_hours": 10.0},
+    {"slug": "transformers", "name": "Transformers", "parent_slug": "deep-learning", "description": "Attention-based neural architectures that revolutionized NLP and many other domains.", "difficulty": "advanced", "estimated_hours": 15.0},
+    {"slug": "gans", "name": "Generative Adversarial Networks", "parent_slug": "deep-learning", "description": "Two-network adversarial framework for generating realistic synthetic data.", "difficulty": "advanced", "estimated_hours": 10.0},
+    {"slug": "diffusion-models", "name": "Diffusion Models", "parent_slug": "deep-learning", "description": "Iterative denoising generative models powering state-of-the-art image synthesis.", "difficulty": "advanced", "estimated_hours": 12.0},
+
+    {"slug": "text-preprocessing", "name": "Text Preprocessing", "parent_slug": "natural-language-processing", "description": "Tokenization, stemming, lemmatization, and cleaning text for ML pipelines.", "difficulty": "beginner", "estimated_hours": 5.0},
+    {"slug": "word-embeddings", "name": "Word Embeddings", "parent_slug": "natural-language-processing", "description": "Dense vector representations of words: Word2Vec, GloVe, FastText.", "difficulty": "intermediate", "estimated_hours": 6.0},
+    {"slug": "large-language-models", "name": "Large Language Models", "parent_slug": "natural-language-processing", "description": "Foundation models trained on massive text corpora: GPT, Llama, Gemini, Claude.", "difficulty": "advanced", "estimated_hours": 15.0},
+    {"slug": "prompt-engineering", "name": "Prompt Engineering", "parent_slug": "natural-language-processing", "description": "Crafting effective prompts to guide LLM behavior: few-shot, chain-of-thought, structured output.", "difficulty": "intermediate", "estimated_hours": 6.0},
+    {"slug": "fine-tuning", "name": "Fine-Tuning LLMs", "parent_slug": "natural-language-processing", "description": "Adapting pre-trained LLMs to specific tasks using supervised fine-tuning and RLHF.", "difficulty": "advanced", "estimated_hours": 15.0},
+
+    {"slug": "vector-embeddings", "name": "Vector Embeddings", "parent_slug": "rag", "description": "Encoding text into dense vectors that capture semantic meaning for similarity search.", "difficulty": "intermediate", "estimated_hours": 5.0},
+    {"slug": "chunking-strategies", "name": "Chunking Strategies", "parent_slug": "rag", "description": "Splitting documents into optimal pieces: fixed-size, semantic, hierarchical, and agentic chunking.", "difficulty": "intermediate", "estimated_hours": 5.0},
+    {"slug": "retrieval-methods", "name": "Retrieval Methods", "parent_slug": "rag", "description": "Dense, sparse, and hybrid retrieval techniques including BM25, FAISS, and semantic search.", "difficulty": "intermediate", "estimated_hours": 6.0},
+    {"slug": "vector-databases", "name": "Vector Databases", "parent_slug": "rag", "description": "Specialized storage for high-dimensional vectors: Qdrant, Pinecone, Weaviate, ChromaDB.", "difficulty": "intermediate", "estimated_hours": 5.0},
+    {"slug": "reranking", "name": "Re-ranking", "parent_slug": "rag", "description": "Post-retrieval scoring to improve precision: cross-encoders, LLM-based re-ranking, Cohere Rerank.", "difficulty": "advanced", "estimated_hours": 4.0},
+    {"slug": "rag-evaluation", "name": "RAG Evaluation", "parent_slug": "rag", "description": "Measuring RAG pipeline quality: faithfulness, answer relevance, context precision with RAGAS.", "difficulty": "advanced", "estimated_hours": 5.0},
+    {"slug": "production-rag", "name": "Production RAG Systems", "parent_slug": "rag", "description": "Scaling RAG to production: caching, latency optimization, observability, and guardrails.", "difficulty": "advanced", "estimated_hours": 8.0},
+    {"slug": "agentic-rag", "name": "Agentic RAG", "parent_slug": "rag", "description": "Autonomous RAG systems that plan retrieval strategies and self-correct for complex queries.", "difficulty": "advanced", "estimated_hours": 8.0},
+
+    {"slug": "ai-agents", "name": "AI Agents", "parent_slug": "agentic-ai", "description": "Autonomous systems that perceive, plan, and act to achieve goals using tools and reasoning.", "difficulty": "advanced", "estimated_hours": 10.0},
+    {"slug": "tool-use", "name": "Tool Use", "parent_slug": "agentic-ai", "description": "Enabling LLMs to call external tools, APIs, and code interpreters.", "difficulty": "intermediate", "estimated_hours": 6.0},
+    {"slug": "agent-workflows", "name": "Agent Workflows", "parent_slug": "agentic-ai", "description": "Structured pipelines for agent execution: LangGraph, ReAct, plan-and-execute patterns.", "difficulty": "advanced", "estimated_hours": 8.0},
+    {"slug": "multi-agent-systems", "name": "Multi-Agent Systems", "parent_slug": "agentic-ai", "description": "Coordinating multiple specialized agents to solve complex tasks collaboratively.", "difficulty": "advanced", "estimated_hours": 10.0},
+
+    {"slug": "experiment-tracking", "name": "Experiment Tracking", "parent_slug": "mlops", "description": "Logging and comparing ML experiments with MLflow, Weights & Biases, and DVC.", "difficulty": "intermediate", "estimated_hours": 5.0},
+    {"slug": "model-serving", "name": "Model Serving", "parent_slug": "mlops", "description": "Deploying models as APIs: FastAPI, BentoML, TorchServe, and serverless inference.", "difficulty": "intermediate", "estimated_hours": 8.0},
+    {"slug": "model-monitoring", "name": "Model Monitoring", "parent_slug": "mlops", "description": "Detecting data drift, model degradation, and concept drift in production.", "difficulty": "intermediate", "estimated_hours": 6.0},
+    {"slug": "ml-cicd", "name": "CI/CD for ML", "parent_slug": "mlops", "description": "Automating training, testing, and deployment pipelines for ML models.", "difficulty": "intermediate", "estimated_hours": 6.0},
+
+    {"slug": "image-classification", "name": "Image Classification", "parent_slug": "computer-vision", "description": "Assigning class labels to images using CNNs and vision transformers.", "difficulty": "intermediate", "estimated_hours": 8.0},
+    {"slug": "object-detection", "name": "Object Detection", "parent_slug": "computer-vision", "description": "Locating and classifying objects in images: YOLO, DETR, and Faster R-CNN.", "difficulty": "advanced", "estimated_hours": 10.0},
+    {"slug": "vision-transformers", "name": "Vision Transformers", "parent_slug": "computer-vision", "description": "Applying self-attention mechanisms to image patches: ViT, DINO, SAM.", "difficulty": "advanced", "estimated_hours": 8.0},
+
+    {"slug": "policy-gradient", "name": "Policy Gradient Methods", "parent_slug": "reinforcement-learning", "description": "Directly optimizing policy parameters: REINFORCE, PPO, and actor-critic methods.", "difficulty": "advanced", "estimated_hours": 10.0},
+    {"slug": "q-learning", "name": "Q-Learning & DQN", "parent_slug": "reinforcement-learning", "description": "Value-based RL: Bellman equations, Q-learning, and deep Q-networks.", "difficulty": "advanced", "estimated_hours": 8.0},
+    {"slug": "rlhf", "name": "RLHF", "parent_slug": "reinforcement-learning", "description": "Reinforcement Learning from Human Feedback for aligning LLMs with human preferences.", "difficulty": "advanced", "estimated_hours": 8.0}
+  ]
+}

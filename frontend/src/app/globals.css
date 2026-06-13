@@ -1,0 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+/* ── Design Tokens ──────────────────────────────────────────────────────────── */
+:root {
+  /* shadcn/ui tokens — dark mode as default */
+  --background: 240 10% 4%;
+  --foreground: 210 20% 96%;
+  --card: 240 8% 7%;
+  --card-foreground: 210 20% 96%;
+  --popover: 240 8% 7%;
+  --popover-foreground: 210 20% 96%;
+  --primary: 239 68% 56%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 6% 12%;
+  --secondary-foreground: 210 20% 80%;
+  --muted: 240 6% 10%;
+  --muted-foreground: 215 16% 55%;
+  --accent: 191 88% 50%;
+  --accent-foreground: 240 10% 4%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 240 6% 14%;
+  --input: 240 6% 12%;
+  --ring: 239 68% 56%;
+  --radius: 0.75rem;
+}
+
+/* ── Base Styles ────────────────────────────────────────────────────────────── */
+* {
+  border-color: hsl(var(--border));
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(239 68% 20% / 0.4), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 100%, hsl(191 88% 15% / 0.2), transparent);
+  min-height: 100dvh;
+}
+
+code, kbd, pre {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+/* ── Custom Component Classes ───────────────────────────────────────────────── */
+
+/* Glass card */
+.glass {
+  background: hsl(240 8% 7% / 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid hsl(240 6% 20% / 0.5);
+}
+
+.glass-hover {
+  background: hsl(240 8% 7% / 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid hsl(240 6% 20% / 0.5);
+  transition: all 0.3s;
+}
+.glass-hover:hover {
+  background: hsl(240 8% 10% / 0.8);
+  border-color: hsl(239 68% 56% / 0.4);
+  box-shadow: 0 0 24px hsl(239 68% 56% / 0.12);
+  transform: translateY(-1px);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(239 68% 70%), hsl(191 88% 60%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glow effects */
+.glow-brand { box-shadow: 0 0 32px hsl(239 68% 56% / 0.25); }
+.glow-accent { box-shadow: 0 0 32px hsl(191 88% 50% / 0.2); }
+
+/* Difficulty badges */
+.badge-beginner {
+  background: hsl(142 76% 36% / 0.15);
+  color: hsl(142 76% 65%);
+  border: 1px solid hsl(142 76% 36% / 0.25);
+}
+.badge-intermediate {
+  background: hsl(38 92% 50% / 0.15);
+  color: hsl(38 92% 65%);
+  border: 1px solid hsl(38 92% 50% / 0.25);
+}
+.badge-advanced {
+  background: hsl(0 72% 51% / 0.15);
+  color: hsl(0 72% 70%);
+  border: 1px solid hsl(0 72% 51% / 0.25);
+}
+
+/* Source type badges */
+.badge-paper        { background: hsl(262 52% 55% / 0.15); color: hsl(262 52% 75%); border: 1px solid hsl(262 52% 55% / 0.25); }
+.badge-github       { background: hsl(215 16% 47% / 0.15); color: hsl(215 16% 75%); border: 1px solid hsl(215 16% 47% / 0.25); }
+.badge-blog         { background: hsl(200 98% 39% / 0.15); color: hsl(200 98% 65%); border: 1px solid hsl(200 98% 39% / 0.25); }
+.badge-course       { background: hsl(25 95% 53% / 0.15);  color: hsl(25 95% 70%);  border: 1px solid hsl(25 95% 53% / 0.25); }
+.badge-video        { background: hsl(0 84% 60% / 0.15);   color: hsl(0 84% 75%);   border: 1px solid hsl(0 84% 60% / 0.25); }
+.badge-documentation { background: hsl(142 71% 45% / 0.15); color: hsl(142 71% 65%); border: 1px solid hsl(142 71% 45% / 0.25); }
+.badge-book         { background: hsl(262 52% 55% / 0.15); color: hsl(262 52% 75%); border: 1px solid hsl(262 52% 55% / 0.25); }
+
+/* Shimmer skeleton */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(240 8% 10%) 0%,
+    hsl(240 8% 15%) 50%,
+    hsl(240 8% 10%) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}
+
+/* Topic nodes */
+.topic-node {
+  background: hsl(240 8% 7% / 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid hsl(240 6% 20% / 0.5);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.topic-node:hover {
+  border-color: hsl(239 68% 56% / 0.6);
+  box-shadow: 0 0 20px hsl(239 68% 56% / 0.15);
+}
+.topic-node.completed {
+  border-color: hsl(142 76% 40% / 0.6);
+  background: hsl(142 76% 20% / 0.15);
+}
+.topic-node.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Animations ─────────────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 12px hsl(239 68% 56% / 0.2); }
+  50%       { box-shadow: 0 0 28px hsl(239 68% 56% / 0.5); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-float      { animation: float 3s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-fade-in-up { animation: fade-in-up 0.4s ease-out forwards; }
+.animate-slide-in   { animation: slide-in-right 0.35s ease-out forwards; }
+
+/* Stagger delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(240 6% 20%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(239 68% 56% / 0.5); }

@@ -1,0 +1,51 @@
+{
+  "trusted_domains": [
+    {"domain": "arxiv.org", "base_trust_score": 95.0, "category": "academic", "notes": "Preprint server for ML/AI papers"},
+    {"domain": "paperswithcode.com", "base_trust_score": 90.0, "category": "academic", "notes": "Papers linked to code implementations"},
+    {"domain": "semanticscholar.org", "base_trust_score": 88.0, "category": "academic"},
+    {"domain": "openreview.net", "base_trust_score": 88.0, "category": "academic", "notes": "NeurIPS, ICLR, ICML papers"},
+
+    {"domain": "pytorch.org", "base_trust_score": 97.0, "category": "official_docs"},
+    {"domain": "tensorflow.org", "base_trust_score": 97.0, "category": "official_docs"},
+    {"domain": "huggingface.co", "base_trust_score": 95.0, "category": "official_docs"},
+    {"domain": "langchain.com", "base_trust_score": 90.0, "category": "official_docs"},
+    {"domain": "docs.langchain.com", "base_trust_score": 90.0, "category": "official_docs"},
+    {"domain": "python.langchain.com", "base_trust_score": 90.0, "category": "official_docs"},
+    {"domain": "scikit-learn.org", "base_trust_score": 97.0, "category": "official_docs"},
+    {"domain": "keras.io", "base_trust_score": 95.0, "category": "official_docs"},
+    {"domain": "numpy.org", "base_trust_score": 97.0, "category": "official_docs"},
+    {"domain": "pandas.pydata.org", "base_trust_score": 97.0, "category": "official_docs"},
+    {"domain": "qdrant.tech", "base_trust_score": 90.0, "category": "official_docs"},
+    {"domain": "docs.mistral.ai", "base_trust_score": 90.0, "category": "official_docs"},
+    {"domain": "platform.openai.com", "base_trust_score": 92.0, "category": "official_docs"},
+    {"domain": "ai.google.dev", "base_trust_score": 92.0, "category": "official_docs"},
+    {"domain": "cloud.google.com", "base_trust_score": 90.0, "category": "official_docs"},
+
+    {"domain": "lilianweng.github.io", "base_trust_score": 95.0, "category": "blog", "notes": "Lilian Weng — OpenAI researcher, exceptional technical depth"},
+    {"domain": "jalammar.github.io", "base_trust_score": 93.0, "category": "blog", "notes": "Jay Alammar — visual explanations of NLP models"},
+    {"domain": "sebastianraschka.com", "base_trust_score": 92.0, "category": "blog", "notes": "Sebastian Raschka — ML researcher and author"},
+    {"domain": "andrej.com", "base_trust_score": 95.0, "category": "blog", "notes": "Andrej Karpathy — deep learning educator"},
+    {"domain": "karpathy.github.io", "base_trust_score": 95.0, "category": "blog"},
+    {"domain": "distill.pub", "base_trust_score": 97.0, "category": "blog", "notes": "Peer-reviewed ML explanations with interactive visualizations"},
+    {"domain": "colah.github.io", "base_trust_score": 93.0, "category": "blog", "notes": "Christopher Olah — neural network visualizations"},
+    {"domain": "ruder.io", "base_trust_score": 90.0, "category": "blog", "notes": "Sebastian Ruder — NLP research"},
+    {"domain": "blog.ml6.eu", "base_trust_score": 82.0, "category": "blog"},
+    {"domain": "towardsdatascience.com", "base_trust_score": 72.0, "category": "blog", "notes": "Quality varies — filter by author/claps"},
+    {"domain": "medium.com", "base_trust_score": 60.0, "category": "blog", "notes": "Quality highly variable — use composite scoring"},
+    {"domain": "neptune.ai", "base_trust_score": 80.0, "category": "blog"},
+    {"domain": "weights-biases.com", "base_trust_score": 82.0, "category": "blog"},
+    {"domain": "wandb.ai", "base_trust_score": 82.0, "category": "blog"},
+    {"domain": "lightning.ai", "base_trust_score": 85.0, "category": "blog"},
+
+    {"domain": "fast.ai", "base_trust_score": 95.0, "category": "course", "notes": "Jeremy Howard's practical deep learning courses"},
+    {"domain": "cs231n.stanford.edu", "base_trust_score": 97.0, "category": "course"},
+    {"domain": "cs224n.stanford.edu", "base_trust_score": 97.0, "category": "course"},
+    {"domain": "ocw.mit.edu", "base_trust_score": 97.0, "category": "course"},
+    {"domain": "deeplearning.ai", "base_trust_score": 93.0, "category": "course"},
+    {"domain": "d2l.ai", "base_trust_score": 95.0, "category": "course", "notes": "Dive into Deep Learning — interactive textbook"},
+    {"domain": "mlabonne.github.io", "base_trust_score": 88.0, "category": "course"},
+
+    {"domain": "github.com", "base_trust_score": 75.0, "category": "github", "notes": "Base score — boosted by star count and recency"},
+    {"domain": "github.io", "base_trust_score": 70.0, "category": "github"}
+  ]
+}

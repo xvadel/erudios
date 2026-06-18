@@ -10,13 +10,13 @@ Erudios solves the biggest pain point in technical learning: **not knowing what 
 
 | Feature | Description |
 |---|---|
-| **Topic Dependency Graph** | Pre-built prerequisite map for 50+ AI/ML topics — zero LLM cost |
+| **Topic Dependency Graph** | Pre-built prerequisite map for 50+ AI/ML topics with smart acronym-aware search |
 | **What to Learn Next** | Graph traversal tells you exactly which topics you've unlocked |
 | **Resource Discovery** | Multi-source discovery (web, GitHub, papers) with trust scoring |
 | **Lazy Content Generation** | Shell → Sections → Styles — generated only when requested |
 | **Multi-Provider LLM Router** | Gemini + Groq + HuggingFace with daily budget tracking |
 | **Shared Content Cache** | Generated content cached across ALL users (Redis + PostgreSQL) |
-| **OAuth Login** | Google and GitHub OAuth — no passwords to manage |
+| **Self-Hosted Local Auth** | Simple Username + Password login — built for local/offline hosting |
 
 ---
 
@@ -32,14 +32,12 @@ cp .env.example .env
 
 ### 2. Fill in your API keys in `.env`
 
-At minimum you need **one** LLM provider and **one** OAuth provider:
+At minimum you need **one** LLM provider API key to generate curriculum modules, descriptions, and section content:
 
 | Key | Where to get it | Free tier |
 |---|---|---|
 | `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com/apikey) | 1M tokens/day |
 | `GROQ_API_KEY` | [console.groq.com](https://console.groq.com/keys) | 1M tokens/day |
-| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) | Free |
-| `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET` | [GitHub Developer Settings](https://github.com/settings/developers) | Free |
 
 ### 3. Run
 
@@ -121,7 +119,7 @@ From the workspace root, copy the environment file:
 ```bash
 cp .env.example .env
 ```
-Fill in the required environment variables in the newly created `.env` file (minimum one LLM provider like `GEMINI_API_KEY` and one OAuth provider like GitHub/Google).
+Fill in the required environment variables in the newly created `.env` file (minimum one LLM provider API key like `GEMINI_API_KEY`).
 
 ### 2. Start Databases (Via Docker)
 Start only the supporting database containers:

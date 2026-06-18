@@ -36,8 +36,10 @@ class ContentCacheService:
         # L1: Redis
         redis_key = self._redis_key(cache_key)
         cached = await cache_service.get(redis_key)
-        if cached:
+        if cached is not None:
             log.debug("Content cache hit (Redis)", key=cache_key)
+            if not isinstance(cached, str):
+                return json.dumps(cached)
             return cached
 
         # L2: PostgreSQL

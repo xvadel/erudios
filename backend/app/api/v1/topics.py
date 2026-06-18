@@ -69,7 +69,7 @@ async def list_root_topics(db: AsyncSession = Depends(get_db)):
 
 @router.get("/search", response_model=list[TopicOut])
 async def search_topics(
-    q: str = Query(..., min_length=2),
+    q: str = Query(..., min_length=1),
     db: AsyncSession = Depends(get_db),
 ):
     """Search topics by name/description (no LLM cost)."""

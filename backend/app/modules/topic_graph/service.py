@@ -203,17 +203,60 @@ class TopicGraphService:
         return all_topics
 
     async def search(self, db: AsyncSession, query: str, limit: int = 10) -> list[Topic]:
-        """Simple text search across topic names and descriptions."""
+        """Fuzzy and acronym-aware search across topic names, descriptions, and slugs."""
+        query_clean = query.strip().lower()
+        if not query_clean:
+            return []
+
+        # Get all topics for Python-side smart matching (taxonomy is small, so this is fast and clean)
         result = await db.execute(
             select(Topic)
-            .where(
-                Topic.name.ilike(f"%{query}%")
-                | Topic.description.ilike(f"%{query}%")
-            )
             .options(selectinload(Topic.children))
-            .limit(limit)
         )
-        return list(result.scalars().all())
+        all_topics = list(result.scalars().all())
+
+        scored_topics = []
+        for topic in all_topics:
+            name_lower = topic.name.lower()
+            slug_lower = topic.slug.lower()
+            desc_lower = (topic.description or "").lower()
+
+            # Generate initials/acronyms of the name, e.g., "Natural Language Processing" -> "nlp"
+            words = name_lower.replace("-", " ").split()
+            initials = "".join(w[0] for w in words if w)
+
+            score = 0
+            if query_clean == slug_lower:
+                score += 100
+            elif query_clean == name_lower:
+                score += 90
+            elif query_clean == initials:
+                score += 85
+            elif name_lower.startswith(query_clean):
+                score += 70
+            elif query_clean in name_lower:
+                score += 50
+            elif query_clean in slug_lower:
+                score += 40
+            elif query_clean in desc_lower:
+                score += 20
+            elif initials.startswith(query_clean):
+                score += 30
+            elif query_clean in initials:
+                score += 15
+
+            # If query is multiple words, check if all words are present
+            query_words = query_clean.split()
+            if len(query_words) > 1:
+                if all(qw in name_lower or qw in desc_lower for qw in query_words):
+                    score += 60
+
+            if score > 0:
+                scored_topics.append((score, topic))
+
+        # Sort by score desc, then name asc
+        scored_topics.sort(key=lambda x: (-x[0], x[1].name.lower()))
+        return [t for _, t in scored_topics[:limit]]
 
 
 topic_graph_service = TopicGraphService()

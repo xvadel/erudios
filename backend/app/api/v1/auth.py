@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
-
-import httpx
+import bcrypt as _bcrypt
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -20,17 +17,32 @@ from app.core.exceptions import UnauthorizedError
 log = structlog.get_logger()
 router = APIRouter()
 
-GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
-
-GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
-GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
-GITHUB_USERINFO_URL = "https://api.github.com/user"
-GITHUB_EMAILS_URL = "https://api.github.com/user/emails"
-
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def password_min_length(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v
+
+    @field_validator("username")
+    @classmethod
+    def username_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Username cannot be empty")
+        return v.strip()
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -40,7 +52,7 @@ class TokenResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: uuid.UUID
-    email: str
+    username: str
     name: str
     avatar_url: str | None
     level: str
@@ -57,44 +69,18 @@ class UpdateProfileRequest(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _callback_url(provider: str) -> str:
-    return f"{settings.OAUTH_REDIRECT_BASE_URL}/api/v1/auth/callback/{provider}"
+def _hash_password(password: str) -> str:
+    return _bcrypt.hashpw(password.encode(), _bcrypt.gensalt()).decode()
 
 
-async def _get_or_create_user(
-    db: AsyncSession,
-    email: str,
-    name: str,
-    avatar_url: str | None,
-    oauth_provider: str,
-    oauth_id: str,
-) -> User:
-    result = await db.execute(select(User).where(User.email == email))
-    user = result.scalar_one_or_none()
-    if user:
-        # Update OAuth info if changed
-        user.oauth_provider = oauth_provider
-        user.oauth_id = oauth_id
-        if avatar_url:
-            user.avatar_url = avatar_url
-        return user
-
-    user = User(
-        email=email,
-        name=name,
-        avatar_url=avatar_url,
-        oauth_provider=oauth_provider,
-        oauth_id=str(oauth_id),
-    )
-    db.add(user)
-    await db.flush()
-    return user
+def _verify_password(plain: str, hashed: str) -> bool:
+    return _bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 def _user_to_response(user: User) -> UserResponse:
     return UserResponse(
         id=user.id,
-        email=user.email,
+        username=user.username,
         name=user.name,
         avatar_url=user.avatar_url,
         level=user.level,
@@ -103,118 +89,37 @@ def _user_to_response(user: User) -> UserResponse:
     )
 
 
-# ── OAuth routes ──────────────────────────────────────────────────────────────
+# ── Auth routes ───────────────────────────────────────────────────────────────
 
-@router.get("/google")
-async def google_login():
-    if not settings.has_google_oauth:
-        raise HTTPException(status_code=503, detail="Google OAuth not configured")
-    params = {
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": _callback_url("google"),
-        "response_type": "code",
-        "scope": "openid email profile",
-        "access_type": "offline",
-    }
-    url = GOOGLE_AUTH_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
-    return RedirectResponse(url)
+@router.post("/register", response_model=TokenResponse, status_code=201)
+async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    """Create a new account with username & password."""
+    result = await db.execute(select(User).where(User.username == body.username))
+    existing = result.scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=409, detail="An account with this username already exists")
 
-
-@router.get("/github")
-async def github_login():
-    if not settings.has_github_oauth:
-        raise HTTPException(status_code=503, detail="GitHub OAuth not configured")
-    params = {
-        "client_id": settings.GITHUB_CLIENT_ID,
-        "redirect_uri": _callback_url("github"),
-        "scope": "user:email",
-    }
-    url = GITHUB_AUTH_URL + "?" + "&".join(f"{k}={v}" for k, v in params.items())
-    return RedirectResponse(url)
-
-
-@router.get("/callback/google", response_model=TokenResponse)
-async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
-    async with httpx.AsyncClient() as client:
-        # Exchange code for token
-        token_resp = await client.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "code": code,
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": _callback_url("google"),
-                "grant_type": "authorization_code",
-            },
-        )
-        token_resp.raise_for_status()
-        tokens = token_resp.json()
-
-        # Get user info
-        user_resp = await client.get(
-            GOOGLE_USERINFO_URL,
-            headers={"Authorization": f"Bearer {tokens['access_token']}"},
-        )
-        user_resp.raise_for_status()
-        info = user_resp.json()
-
-    user = await _get_or_create_user(
-        db,
-        email=info["email"],
-        name=info.get("name", ""),
-        avatar_url=info.get("picture"),
-        oauth_provider="google",
-        oauth_id=info["id"],
+    user = User(
+        username=body.username,
+        name=body.username,
+        password_hash=_hash_password(body.password),
     )
+    db.add(user)
+    await db.flush()
+
     token = create_access_token(str(user.id))
     return TokenResponse(access_token=token, user=_user_to_response(user))
 
 
-@router.get("/callback/github", response_model=TokenResponse)
-async def github_callback(code: str, db: AsyncSession = Depends(get_db)):
-    async with httpx.AsyncClient() as client:
-        token_resp = await client.post(
-            GITHUB_TOKEN_URL,
-            headers={"Accept": "application/json"},
-            data={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": _callback_url("github"),
-            },
-        )
-        token_resp.raise_for_status()
-        tokens = token_resp.json()
-        access_token = tokens.get("access_token")
-        if not access_token:
-            raise HTTPException(status_code=400, detail="GitHub OAuth failed")
+@router.post("/login", response_model=TokenResponse)
+async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
+    """Sign in with username & password."""
+    result = await db.execute(select(User).where(User.username == body.username))
+    user = result.scalar_one_or_none()
 
-        headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
-        user_resp = await client.get(GITHUB_USERINFO_URL, headers=headers)
-        user_resp.raise_for_status()
-        info = user_resp.json()
+    if not user or not user.password_hash or not _verify_password(body.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
-        # GitHub may not expose email — fetch from emails endpoint
-        email = info.get("email")
-        if not email:
-            emails_resp = await client.get(GITHUB_EMAILS_URL, headers=headers)
-            emails_resp.raise_for_status()
-            for e in emails_resp.json():
-                if e.get("primary") and e.get("verified"):
-                    email = e["email"]
-                    break
-
-    if not email:
-        raise HTTPException(status_code=400, detail="Could not retrieve email from GitHub")
-
-    user = await _get_or_create_user(
-        db,
-        email=email,
-        name=info.get("name") or info.get("login", ""),
-        avatar_url=info.get("avatar_url"),
-        oauth_provider="github",
-        oauth_id=str(info["id"]),
-    )
     token = create_access_token(str(user.id))
     return TokenResponse(access_token=token, user=_user_to_response(user))
 

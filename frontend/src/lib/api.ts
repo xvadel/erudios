@@ -34,17 +34,33 @@ async function request<T>(
     throw new ApiError(res.status, detail);
   }
 
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
-export function getGoogleOAuthUrl() {
-  return `${API_BASE}/api/v1/auth/google`;
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
 }
 
-export function getGitHubOAuthUrl() {
-  return `${API_BASE}/api/v1/auth/github`;
+export async function login(username: string, password: string): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export async function register(
+  username: string,
+  password: string
+): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
 }
 
 export async function getMe(): Promise<User> {
@@ -103,6 +119,75 @@ export async function triggerDiscovery(topicSlug: string) {
   return request(`/resources/topics/${topicSlug}/discover`, { method: "POST" });
 }
 
+// ── Curriculum ────────────────────────────────────────────────────────────────
+
+export async function createCurriculum(topicSlug: string): Promise<Curriculum> {
+  return request<Curriculum>(`/curriculum/${topicSlug}`, { method: "POST" });
+}
+
+export async function getCurriculum(id: string): Promise<Curriculum> {
+  return request<Curriculum>(`/curriculum/${id}`);
+}
+
+export async function listMyCurricula(): Promise<CurriculumSummary[]> {
+  return request<CurriculumSummary[]>("/curriculum/me");
+}
+
+export async function deleteCurriculum(id: string): Promise<void> {
+  return request<void>(`/curriculum/${id}`, { method: "DELETE" });
+}
+
+// ── Artifacts ─────────────────────────────────────────────────────────────────
+
+export async function getArtifactShell(topicSlug: string): Promise<ArtifactShell> {
+  return request<ArtifactShell>(`/artifacts/${topicSlug}/shell`);
+}
+
+export async function getSectionContent(
+  topicSlug: string,
+  sectionSlug: string,
+  style?: string
+): Promise<SectionContent> {
+  const qs = style ? `?style=${encodeURIComponent(style)}` : "";
+  return request<SectionContent>(`/artifacts/${topicSlug}/sections/${sectionSlug}${qs}`);
+}
+
+export async function getSectionQuiz(
+  topicSlug: string,
+  sectionSlug: string
+): Promise<QuizData> {
+  return request<QuizData>(`/artifacts/${topicSlug}/sections/${sectionSlug}/quiz`);
+}
+
+// ── Progress ──────────────────────────────────────────────────────────────────
+
+export async function completeModule(
+  moduleId: string,
+  timeSpentMinutes?: number
+): Promise<ModuleProgress> {
+  return request<ModuleProgress>(`/progress/modules/${moduleId}/complete`, {
+    method: "POST",
+    body: JSON.stringify({ time_spent_minutes: timeSpentMinutes ?? 0 }),
+  });
+}
+
+export async function submitQuizResult(
+  moduleId: string,
+  score: number,
+  timeSpentMinutes?: number
+): Promise<ModuleProgress> {
+  return request<ModuleProgress>(`/progress/modules/${moduleId}/quiz-result`, {
+    method: "POST",
+    body: JSON.stringify({ score, time_spent_minutes: timeSpentMinutes ?? 0 }),
+  });
+}
+
+export async function getCurriculumProgress(
+  curriculumId: string
+): Promise<CurriculumProgress> {
+  return request<CurriculumProgress>(`/progress/curricula/${curriculumId}`);
+}
+
 // ── Health ────────────────────────────────────────────────────────────────────
 
 export async function getHealth(): Promise<HealthResponse> {
@@ -113,7 +198,7 @@ export async function getHealth(): Promise<HealthResponse> {
 
 export interface User {
   id: string;
-  email: string;
+  username: string;
   name: string;
   avatar_url: string | null;
   level: string;
@@ -166,6 +251,91 @@ export interface Resource {
   composite_score: number;
 }
 
+export interface CurriculumModule {
+  id: string;
+  order_index: number;
+  title: string;
+  description: string | null;
+  why_next: string | null;
+  estimated_hours: number;
+  difficulty: string;
+  topic_slug: string;
+  topic_name: string;
+}
+
+export interface Curriculum {
+  id: string;
+  topic_slug: string;
+  topic_name: string;
+  level: string;
+  learning_style: string;
+  goal: string;
+  modules: CurriculumModule[];
+  created_at: string;
+}
+
+export interface CurriculumSummary {
+  id: string;
+  topic_slug: string;
+  topic_name: string;
+  level: string;
+  learning_style: string;
+  goal: string;
+  module_count: number;
+  created_at: string;
+}
+
+export interface ArtifactSection {
+  slug: string;
+  title: string;
+}
+
+export interface ArtifactShell {
+  topic_slug: string;
+  overview: string;
+  sections: ArtifactSection[];
+}
+
+export interface SectionContent {
+  topic_slug: string;
+  section_slug: string;
+  content: string;
+  has_overlay: boolean;
+  degraded: boolean;
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+}
+
+export interface QuizData {
+  topic_slug: string;
+  section_slug: string;
+  questions: QuizQuestion[];
+}
+
+export interface ModuleProgress {
+  module_id: string;
+  topic_slug: string;
+  mastery_score: number;
+  quizzes_taken: number;
+  avg_quiz_score: number;
+  time_spent_minutes: number;
+  sections_completed: number;
+  last_reviewed: string | null;
+}
+
+export interface CurriculumProgress {
+  curriculum_id: string;
+  total_modules: number;
+  completed_modules: number;
+  completion_pct: number;
+  progress: ModuleProgress[];
+}
+
 export interface HealthResponse {
   status: string;
   version: string;
@@ -177,3 +347,4 @@ export interface HealthResponse {
     rag_tutor: string;
   };
 }
+

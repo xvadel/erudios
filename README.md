@@ -112,34 +112,63 @@ Erudios is designed to operate entirely within **free API tiers**:
 
 ---
 
-## 🛠️ Local Development (without Docker)
+## 🛠️ Local Development Setup
 
-### Backend
+To run Erudios locally, the recommended workflow is a **hybrid setup**: run the database services (PostgreSQL, Redis, and Qdrant) via Docker Compose, and run the FastAPI backend and Next.js frontend code directly in your local environment. This enables fast hot-reloading and easy debugging.
 
+### 1. Initialize Configuration
+From the workspace root, copy the environment file:
+```bash
+cp .env.example .env
+```
+Fill in the required environment variables in the newly created `.env` file (minimum one LLM provider like `GEMINI_API_KEY` and one OAuth provider like GitHub/Google).
+
+### 2. Start Databases (Via Docker)
+Start only the supporting database containers:
+```bash
+docker compose up -d postgres redis qdrant
+```
+This spins up PostgreSQL on port `5432`, Redis on port `6379`, and Qdrant on port `6333`.
+
+### 3. Setup & Start Backend
+Open a new terminal and navigate to the backend folder:
 ```bash
 cd backend
+
+# Create and activate virtual environment
 python -m venv .venv
-.venv\Scripts\activate  # Windows
+# On Windows (PowerShell/CMD):
+.venv\Scripts\activate
+# On macOS/Linux:
+# source .venv/bin/activate
+
+# Install dependencies in editable development mode
 pip install -e ".[dev]"
 
-# Copy and fill .env
-cp ../.env.example .env
+# Copy the configured env file from root
+cp ../.env .env
 
 # Run database migrations
 alembic upgrade head
 
-# Start server
+# Start FastAPI server
 uvicorn app.main:app --reload --port 8000
 ```
+- API Docs: http://localhost:8000/docs
+- Health check: http://localhost:8000/api/v1/health
 
-### Frontend
-
+### 4. Setup & Start Frontend
+Open a new terminal and navigate to the frontend folder:
 ```bash
 cd frontend
+
+# Install package dependencies
 npm install
+
+# Run the Next.js development server
 npm run dev
-# → http://localhost:3000
 ```
+- Frontend application: http://localhost:3000
 
 ---
 

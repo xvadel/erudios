@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Brain, User, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { login as apiLogin, ApiError } from "@/lib/api";
+import { Brain, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { register as apiRegister, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuth();
   const [username, setUsername] = useState("");
@@ -19,9 +19,15 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await apiLogin(username, password);
+      const res = await apiRegister(username, password);
       await login(res.access_token);
       
       const searchParams = new URLSearchParams(window.location.search);
@@ -54,10 +60,10 @@ export default function LoginPage() {
               <Brain className="w-6 h-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight gradient-text">
-              Welcome back
+              Create your account
             </h1>
             <p className="text-sm text-muted-foreground mt-1 text-center">
-              Sign in to your Erudios account
+              Start building your personalized AI/ML curriculum
             </p>
           </div>
 
@@ -78,7 +84,7 @@ export default function LoginPage() {
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
-                  id="login-username"
+                  id="register-username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -97,12 +103,12 @@ export default function LoginPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
-                  id="login-password"
+                  id="register-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="••••••••"
+                  placeholder="Min. 8 characters"
                   className="w-full h-11 pl-10 pr-10 rounded-xl bg-white/5 border border-white/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/50 focus:bg-white/8 transition-all duration-200 text-sm"
                 />
                 <button
@@ -113,11 +119,12 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground pl-1">At least 8 characters</p>
             </div>
 
             {/* Submit */}
             <button
-              id="login-submit"
+              id="register-submit"
               type="submit"
               disabled={loading}
               className="w-full h-11 mt-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all duration-200"
@@ -126,7 +133,7 @@ export default function LoginPage() {
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  Sign in
+                  Create account
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -136,12 +143,12 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="mt-6 pt-6 border-t border-white/8 text-center">
             <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
+              Already have an account?{" "}
               <Link
-                href="/auth/register"
+                href="/auth/login"
                 className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
               >
-                Create one
+                Sign in
               </Link>
             </p>
           </div>

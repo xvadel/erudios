@@ -16,13 +16,12 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
-    # OAuth
-    oauth_provider: Mapped[str] = mapped_column(String(50), nullable=False)  # "google" | "github"
-    oauth_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    # Password auth
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Learning preferences
     level: Mapped[str] = mapped_column(
@@ -51,4 +50,4 @@ class User(Base):
     chat_sessions: Mapped[list["ChatSession"]] = relationship(back_populates="user", lazy="select")
 
     def __repr__(self) -> str:
-        return f"<User id={self.id} email={self.email}>"
+        return f"<User id={self.id} username={self.username}>"

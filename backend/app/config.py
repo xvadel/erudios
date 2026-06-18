@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     SECRET_KEY: str = Field(default="change-me-in-production-please")
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # ── Database ─────────────────────────────────────────────────────────────
     DATABASE_URL: str = (
@@ -51,13 +52,6 @@ class Settings(BaseSettings):
     GROQ_LLAMA_DAILY_TOKEN_LIMIT: int = 900_000        # ~90% of 1M limit
     GROQ_GEMMA_DAILY_TOKEN_LIMIT: int = 13_000         # ~90% of 14.4K limit
     HUGGINGFACE_DAILY_REQUEST_LIMIT: int = 900          # ~90% of 1K limit
-
-    # ── OAuth ────────────────────────────────────────────────────────────────
-    GOOGLE_CLIENT_ID: str | None = None
-    GOOGLE_CLIENT_SECRET: str | None = None
-    GITHUB_CLIENT_ID: str | None = None
-    GITHUB_CLIENT_SECRET: str | None = None
-    OAUTH_REDIRECT_BASE_URL: str = "http://localhost:8000"
 
     # ── JWT ──────────────────────────────────────────────────────────────────
     JWT_ALGORITHM: str = "HS256"
@@ -109,13 +103,8 @@ class Settings(BaseSettings):
     def has_github_token(self) -> bool:
         return bool(self.GITHUB_TOKEN)
 
-    @property
-    def has_google_oauth(self) -> bool:
-        return bool(self.GOOGLE_CLIENT_ID and self.GOOGLE_CLIENT_SECRET)
 
-    @property
-    def has_github_oauth(self) -> bool:
-        return bool(self.GITHUB_CLIENT_ID and self.GITHUB_CLIENT_SECRET)
+
 
     @property
     def available_llm_providers(self) -> list[str]:

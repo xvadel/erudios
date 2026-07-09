@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { AuthProvider } from "@/lib/auth-context";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Erudios — AI Curriculum Builder",
@@ -26,9 +27,11 @@ export default function RootLayout({
         <AuthProvider>
           <Header />
           <main className="min-h-[calc(100dvh-4rem)]">{children}</main>
+          <Toaster />
         </AuthProvider>
       </body>
     </html>
   );
 }
+
 

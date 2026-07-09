@@ -4,19 +4,20 @@ import json
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-from app.services.content_cache import content_cache
+from app.models.artifact import ArtifactShell, ArtifactSection, Quiz
+from app.models.topic import Topic
+from app.services.cache import cache_service
 from app.providers.llms.router import provider_router
 from app.providers.llms.budget import TaskType
 from app.modules.topic_graph.service import topic_graph_service
 from app.core.exceptions import NotFoundError
+from app.config import settings
 
 log = structlog.get_logger()
 
-
-# ── Default learning style (overlay skipped for this value if content == base) ─
-
-DEFAULT_STYLE = "practical"
 
 # ── Style descriptions for prompts ─────────────────────────────────────────────
 
@@ -44,6 +45,8 @@ STYLE_PROMPTS: dict[str, str] = {
     ),
 }
 
+DEFAULT_STYLE = "practical"
+
 # ── System prompts ─────────────────────────────────────────────────────────────
 
 _SHELL_SYSTEM = """\
@@ -66,29 +69,75 @@ understanding, not just memorization. Return only valid JSON.
 
 class ArtifactService:
     """
-    Three-stage lazy content generation for topic learning artifacts.
+    Three-stage lazy content generation using the typed relational artifact tables.
 
-    Stage 1 — Shell: overview + section titles (~200 tokens, once per topic)
-    Stage 2 — Section content: base markdown (~600 tokens, once per topic/section)
-               + optional style overlay (~400 tokens, once per topic/section/style)
-    Stage 3 — Quiz: 5 MCQ questions (~400 tokens, once per topic/section)
+    Stage 1 — Shell: ArtifactShell row with overview + ordered section list
+    Stage 2 — Section: ArtifactSection row with base_content + style_overlays dict
+    Stage 3 — Quiz: Quiz row with JSONB questions array
 
-    All content is shared globally — generated once, cached for all users.
+    Redis (L1) caches hot content by cache_key for 24 h.
+    All content is shared globally — generated once, used by all users.
     """
+
+    # ── Helpers ────────────────────────────────────────────────────────────────
+
+    def _redis_key(self, key: str) -> str:
+        return f"artifact:{key}"
+
+    async def _redis_get(self, key: str) -> str | None:
+        val = await cache_service.get(self._redis_key(key))
+        if val is None:
+            return None
+        return val if isinstance(val, str) else json.dumps(val)
+
+    async def _redis_set(self, key: str, value: str) -> None:
+        await cache_service.set(self._redis_key(key), value, ttl=settings.CACHE_TTL_HOT)
 
     # ── Stage 1: Shell ────────────────────────────────────────────────────────
 
     async def get_or_generate_shell(
         self, db: AsyncSession, topic_slug: str
     ) -> dict:
-        """Return or generate the artifact shell for a topic."""
+        """Return or generate the artifact shell for a topic (dict with overview + sections)."""
         cache_key = f"{topic_slug}/shell"
-        cached = await content_cache.get(db, cache_key)
+
+        # L1: Redis
+        cached = await self._redis_get(cache_key)
         if cached:
             return json.loads(cached)
 
+        # L2: PostgreSQL via typed ArtifactShell table
         topic = await topic_graph_service.get_by_slug(db, topic_slug)
+        shell_row = await self._load_shell_row(db, topic.id)
+        if shell_row:
+            data = self._shell_row_to_dict(shell_row)
+            await self._redis_set(cache_key, json.dumps(data))
+            return data
 
+        # Generate via LLM
+        return await self._generate_shell(db, topic, cache_key)
+
+    async def _load_shell_row(self, db: AsyncSession, topic_id) -> ArtifactShell | None:
+        result = await db.execute(
+            select(ArtifactShell)
+            .where(ArtifactShell.topic_id == topic_id)
+            .options(selectinload(ArtifactShell.sections))
+        )
+        return result.scalar_one_or_none()
+
+    def _shell_row_to_dict(self, shell: ArtifactShell) -> dict:
+        sections_sorted = sorted(shell.sections, key=lambda s: s.order_index)
+        return {
+            "overview": shell.overview or "",
+            "sections": [
+                {"slug": s.section_slug, "title": s.section_title}
+                for s in sections_sorted
+            ],
+        }
+
+    async def _generate_shell(
+        self, db: AsyncSession, topic: Topic, cache_key: str
+    ) -> dict:
         prompt = f"""\
 Create a learning artifact shell for the topic: "{topic.name}"
 
@@ -122,21 +171,33 @@ Return only the JSON object. Example:
             raw = _strip_fences(response.content)
             shell_data = json.loads(raw)
 
-            await content_cache.set(
-                db=db,
+            # Persist to ArtifactShell + ArtifactSection rows
+            shell_row = ArtifactShell(
+                topic_id=topic.id,
+                overview=shell_data.get("overview", ""),
+                section_titles=[s["slug"] for s in shell_data.get("sections", [])],
                 cache_key=cache_key,
-                content=json.dumps(shell_data),
-                provider_used=response.provider,
-                model_used=response.model,
-                tokens_input=response.tokens_input,
-                tokens_output=response.tokens_output,
             )
-            log.info("Shell generated", topic=topic_slug, tokens=response.total_tokens)
+            db.add(shell_row)
+            await db.flush()
+
+            for i, sec in enumerate(shell_data.get("sections", [])):
+                section_cache_key = f"{topic.slug}/{sec['slug']}/meta"
+                db.add(ArtifactSection(
+                    shell_id=shell_row.id,
+                    section_slug=sec["slug"],
+                    section_title=sec["title"],
+                    order_index=i,
+                    cache_key=section_cache_key,
+                ))
+            await db.flush()
+
+            await self._redis_set(cache_key, json.dumps(shell_data))
+            log.info("Shell generated", topic=topic.slug, tokens=response.total_tokens)
             return shell_data
 
         except Exception as exc:
-            log.error("Shell generation failed", topic=topic_slug, error=str(exc))
-            # Return a minimal fallback shell
+            log.error("Shell generation failed", topic=topic.slug, error=str(exc))
             return {
                 "overview": f"This module covers {topic.name}, a key concept in AI/ML.",
                 "sections": [
@@ -159,21 +220,27 @@ Return only the JSON object. Example:
     ) -> dict:
         """
         Return or generate section content.
-        If learning_style is provided and is not DEFAULT_STYLE, appends a style overlay.
         Returns {"content": str, "has_overlay": bool, "degraded": bool}
         """
-        base_key = f"{topic_slug}/{section_slug}/base"
-        base_content = await content_cache.get(db, base_key)
+        topic = await topic_graph_service.get_by_slug(db, topic_slug)
+        section_row = await self._load_section_row(db, topic.id, section_slug)
 
+        # --- Base content ---
+        base_content = section_row.base_content if section_row else None
         if not base_content:
-            base_content = await self._generate_base_content(
-                db, topic_slug, section_slug, section_title, base_key
-            )
+            base_cache_key = f"{topic_slug}/{section_slug}/base"
+            cached = await self._redis_get(base_cache_key)
+            if cached:
+                base_content = cached
+            else:
+                base_content = await self._generate_base_content(
+                    db, topic, section_row, section_slug, section_title
+                )
 
         if not base_content:
             return {"content": "Content is being generated. Please try again shortly.", "has_overlay": False, "degraded": True}
 
-        # Style overlay: only if (a) non-default style and (b) cache miss
+        # --- Style overlay ---
         should_add_overlay = (
             learning_style
             and learning_style != DEFAULT_STYLE
@@ -182,33 +249,54 @@ Return only the JSON object. Example:
 
         if should_add_overlay:
             assert learning_style is not None
-            overlay_key = f"{topic_slug}/{section_slug}/style_{learning_style}"
-            overlay = await content_cache.get(db, overlay_key)
+            overlay_key = f"style_{learning_style}"
+            section_row = section_row or await self._load_section_row(db, topic.id, section_slug)
+            overlay = (
+                section_row.style_overlays.get(overlay_key)
+                if section_row and section_row.style_overlays
+                else None
+            )
 
             if not overlay:
-                overlay = await self._generate_style_overlay(
-                    db, topic_slug, section_slug, section_title, base_content, learning_style, overlay_key
-                )
+                redis_overlay_key = f"{topic_slug}/{section_slug}/{overlay_key}"
+                cached_overlay = await self._redis_get(redis_overlay_key)
+                if cached_overlay:
+                    overlay = cached_overlay
+                else:
+                    overlay = await self._generate_style_overlay(
+                        db, topic, section_row, section_slug, section_title,
+                        base_content, learning_style
+                    )
 
             if overlay:
                 merged = base_content + "\n\n---\n\n" + overlay
                 return {"content": merged, "has_overlay": True, "degraded": False}
             else:
-                # Overlay generation failed — return base with degraded flag
                 return {"content": base_content, "has_overlay": False, "degraded": True}
 
         return {"content": base_content, "has_overlay": False, "degraded": False}
 
+    async def _load_section_row(
+        self, db: AsyncSession, topic_id, section_slug: str
+    ) -> ArtifactSection | None:
+        result = await db.execute(
+            select(ArtifactSection)
+            .join(ArtifactShell, ArtifactSection.shell_id == ArtifactShell.id)
+            .where(
+                ArtifactShell.topic_id == topic_id,
+                ArtifactSection.section_slug == section_slug,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def _generate_base_content(
         self,
         db: AsyncSession,
-        topic_slug: str,
+        topic: Topic,
+        section_row: ArtifactSection | None,
         section_slug: str,
         section_title: str,
-        cache_key: str,
     ) -> str | None:
-        topic = await topic_graph_service.get_by_slug(db, topic_slug)
-
         prompt = f"""\
 Write a comprehensive learning section for an AI/ML course.
 
@@ -235,34 +323,47 @@ Use markdown headers (##, ###), bullet points, and code blocks (```python) where
                 max_tokens=1024,
             )
             content = response.content.strip()
-            await content_cache.set(
-                db=db,
-                cache_key=cache_key,
-                content=content,
-                provider_used=response.provider,
-                model_used=response.model,
-                tokens_input=response.tokens_input,
-                tokens_output=response.tokens_output,
-            )
-            log.info("Section base generated", topic=topic_slug, section=section_slug, tokens=response.total_tokens)
+
+            # Persist to ArtifactSection.base_content
+            if section_row:
+                section_row.base_content = content
+                await db.flush()
+            else:
+                # Section row may not exist if shell was generated differently — create it
+                shell_result = await db.execute(
+                    select(ArtifactShell).where(ArtifactShell.topic_id == topic.id)
+                )
+                shell_row = shell_result.scalar_one_or_none()
+                if shell_row:
+                    db.add(ArtifactSection(
+                        shell_id=shell_row.id,
+                        section_slug=section_slug,
+                        section_title=section_title,
+                        base_content=content,
+                        order_index=0,
+                        cache_key=f"{topic.slug}/{section_slug}/meta",
+                    ))
+                    await db.flush()
+
+            # Warm Redis
+            await self._redis_set(f"{topic.slug}/{section_slug}/base", content)
+            log.info("Section base generated", topic=topic.slug, section=section_slug, tokens=response.total_tokens)
             return content
         except Exception as exc:
-            log.error("Section base generation failed", topic=topic_slug, section=section_slug, error=str(exc))
+            log.error("Section base generation failed", topic=topic.slug, section=section_slug, error=str(exc))
             return None
 
     async def _generate_style_overlay(
         self,
         db: AsyncSession,
-        topic_slug: str,
+        topic: Topic,
+        section_row: ArtifactSection | None,
         section_slug: str,
         section_title: str,
         base_content: str,
         learning_style: str,
-        cache_key: str,
     ) -> str | None:
-        topic = await topic_graph_service.get_by_slug(db, topic_slug)
         style_instruction = STYLE_PROMPTS[learning_style]
-
         prompt = f"""\
 You have this learning content about "{section_title}" in the topic "{topic.name}":
 
@@ -284,16 +385,18 @@ Keep it concise — 150-250 words maximum.
                 max_tokens=512,
             )
             overlay = response.content.strip()
-            await content_cache.set(
-                db=db,
-                cache_key=cache_key,
-                content=overlay,
-                provider_used=response.provider,
-                model_used=response.model,
-                tokens_input=response.tokens_input,
-                tokens_output=response.tokens_output,
-            )
-            log.info("Style overlay generated", topic=topic_slug, section=section_slug, style=learning_style)
+            overlay_key = f"style_{learning_style}"
+
+            # Persist to ArtifactSection.style_overlays JSONB dict
+            if section_row:
+                overlays = dict(section_row.style_overlays or {})
+                overlays[overlay_key] = overlay
+                section_row.style_overlays = overlays
+                await db.flush()
+
+            # Warm Redis
+            await self._redis_set(f"{topic.slug}/{section_slug}/{overlay_key}", overlay)
+            log.info("Style overlay generated", topic=topic.slug, section=section_slug, style=learning_style)
             return overlay
         except Exception as exc:
             log.error("Style overlay generation failed", error=str(exc))
@@ -304,14 +407,40 @@ Keep it concise — 150-250 words maximum.
     async def get_or_generate_quiz(
         self, db: AsyncSession, topic_slug: str, section_slug: str, section_title: str
     ) -> list[dict]:
-        """Return or generate quiz questions for a section."""
+        """Return or generate quiz questions, persisting to the Quiz table."""
+        topic = await topic_graph_service.get_by_slug(db, topic_slug)
+        section_row = await self._load_section_row(db, topic.id, section_slug)
+
+        # Check Quiz row
+        if section_row:
+            quiz_result = await db.execute(
+                select(Quiz).where(Quiz.section_id == section_row.id)
+            )
+            quiz_row = quiz_result.scalar_one_or_none()
+            if quiz_row and quiz_row.questions:
+                # Warm Redis and return
+                cache_key = f"{topic_slug}/{section_slug}/quiz"
+                await self._redis_set(cache_key, json.dumps(quiz_row.questions))
+                return quiz_row.questions
+
+        # L1: Redis
         cache_key = f"{topic_slug}/{section_slug}/quiz"
-        cached = await content_cache.get(db, cache_key)
+        cached = await self._redis_get(cache_key)
         if cached:
             return json.loads(cached)
 
-        topic = await topic_graph_service.get_by_slug(db, topic_slug)
+        # Generate
+        return await self._generate_quiz(db, topic, section_row, section_slug, section_title, cache_key)
 
+    async def _generate_quiz(
+        self,
+        db: AsyncSession,
+        topic: Topic,
+        section_row: ArtifactSection | None,
+        section_slug: str,
+        section_title: str,
+        cache_key: str,
+    ) -> list[dict]:
         prompt = f"""\
 Create 5 multiple-choice quiz questions for this AI/ML learning section.
 
@@ -341,20 +470,28 @@ Return only the JSON array.
             if not isinstance(questions, list):
                 raise ValueError("Quiz response is not a list")
 
-            await content_cache.set(
-                db=db,
-                cache_key=cache_key,
-                content=json.dumps(questions),
-                provider_used=response.provider,
-                model_used=response.model,
-                tokens_input=response.tokens_input,
-                tokens_output=response.tokens_output,
-            )
-            log.info("Quiz generated", topic=topic_slug, section=section_slug, questions=len(questions))
+            # Persist to Quiz table
+            if section_row:
+                quiz_result = await db.execute(
+                    select(Quiz).where(Quiz.section_id == section_row.id)
+                )
+                existing_quiz = quiz_result.scalar_one_or_none()
+                if existing_quiz:
+                    existing_quiz.questions = questions
+                else:
+                    db.add(Quiz(
+                        section_id=section_row.id,
+                        questions=questions,
+                        cache_key=cache_key,
+                    ))
+                await db.flush()
+
+            await self._redis_set(cache_key, json.dumps(questions))
+            log.info("Quiz generated", topic=topic.slug, section=section_slug, questions=len(questions))
             return questions
 
         except Exception as exc:
-            log.error("Quiz generation failed", topic=topic_slug, section=section_slug, error=str(exc))
+            log.error("Quiz generation failed", topic=topic.slug, section=section_slug, error=str(exc))
             return []
 
 
@@ -365,7 +502,6 @@ def _strip_fences(text: str) -> str:
     text = text.strip()
     if text.startswith("```"):
         lines = text.split("\n")
-        # Remove first line (```json or ```) and last line (```)
         lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]

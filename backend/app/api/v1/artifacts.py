@@ -1,48 +1,14 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Request
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.modules.artifacts.service import artifact_service
 from app.core.exceptions import NotFoundError
+from app.schemas.artifact import SectionInfo, ShellOut, SectionOut, QuizQuestion, QuizOut
 
 router = APIRouter()
-
-
-# ── Schemas ───────────────────────────────────────────────────────────────────
-
-class SectionInfo(BaseModel):
-    slug: str
-    title: str
-
-
-class ShellOut(BaseModel):
-    topic_slug: str
-    overview: str
-    sections: list[SectionInfo]
-
-
-class SectionOut(BaseModel):
-    topic_slug: str
-    section_slug: str
-    content: str
-    has_overlay: bool
-    degraded: bool
-
-
-class QuizQuestion(BaseModel):
-    question: str
-    options: list[str]
-    correct_index: int
-    explanation: str
-
-
-class QuizOut(BaseModel):
-    topic_slug: str
-    section_slug: str
-    questions: list[QuizQuestion]
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────

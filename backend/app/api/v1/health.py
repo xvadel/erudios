@@ -91,7 +91,7 @@ async def health_check():
         resource_discovery="full" if has_llm else "limited (no LLM ranking)",
         curriculum_generation="full" if has_llm else "unavailable",
         artifact_generation="full" if has_llm else "unavailable",
-        rag_tutor="full" if has_llm else "unavailable",
+        rag_tutor="available" if has_llm else "unavailable",
     )
 
     return HealthResponse(

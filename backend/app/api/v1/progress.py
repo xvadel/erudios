@@ -4,50 +4,22 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
 from app.api.v1.auth import get_current_user
 from app.models.user import User
 from app.models.progress import LearningProgress
 from app.models.curriculum import Module, Curriculum
+from app.models.topic import Topic
 from app.core.exceptions import NotFoundError, ForbiddenError
+from app.schemas.progress import (
+    CompleteModuleRequest, QuizResultRequest, ProgressOut, CurriculumProgressOut
+)
 
 router = APIRouter()
-
-
-# ── Schemas ───────────────────────────────────────────────────────────────────
-
-class CompleteModuleRequest(BaseModel):
-    time_spent_minutes: int = Field(default=0, ge=0)
-
-
-class QuizResultRequest(BaseModel):
-    score: float = Field(..., ge=0.0, le=100.0, description="Quiz score as percentage 0–100")
-    time_spent_minutes: int = Field(default=0, ge=0)
-
-
-class ProgressOut(BaseModel):
-    module_id: uuid.UUID
-    topic_slug: str
-    mastery_score: float
-    quizzes_taken: int
-    avg_quiz_score: float
-    time_spent_minutes: int
-    sections_completed: int
-    last_reviewed: datetime | None
-
-    model_config = {"from_attributes": True}
-
-
-class CurriculumProgressOut(BaseModel):
-    curriculum_id: uuid.UUID
-    total_modules: int
-    completed_modules: int
-    completion_pct: float
-    progress: list[ProgressOut]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -80,6 +52,7 @@ async def _verify_module_ownership(
             Module.id == module_id,
             Curriculum.user_id == user_id,
         )
+        .options(selectinload(Module.topic))
     )
     module = result.scalar_one_or_none()
     if not module:
@@ -169,6 +142,7 @@ async def get_curriculum_progress(
 ):
     """
     Get progress summary for all modules in a curriculum.
+    Uses a single joined query to avoid N+1 topic lookups.
     """
     user: User = await get_current_user(request, db)
 
@@ -183,15 +157,16 @@ async def get_curriculum_progress(
     if not curriculum:
         raise NotFoundError("Curriculum not found")
 
-    # Get all modules
+    # Load all modules with their topics in one query
     modules_result = await db.execute(
         select(Module)
         .where(Module.curriculum_id == curriculum_id)
+        .options(selectinload(Module.topic))
         .order_by(Module.order_index)
     )
     modules = list(modules_result.scalars().all())
 
-    # Get all progress rows for these modules
+    # Load all progress rows for these modules in one query
     module_ids = [m.id for m in modules]
     if module_ids:
         progress_result = await db.execute(
@@ -213,19 +188,10 @@ async def get_curriculum_progress(
         if mastery >= 80.0:
             completed += 1
 
-        # Need topic slug — join was not loaded, use topic_id placeholder
-        from sqlalchemy.orm import selectinload
-        from app.models.topic import Topic
-        topic_result = await db.execute(
-            select(Topic).where(Topic.id == module.topic_id)
-        )
-        topic = topic_result.scalar_one_or_none()
-        topic_slug = topic.slug if topic else ""
-
         progress_list.append(
             ProgressOut(
                 module_id=module.id,
-                topic_slug=topic_slug,
+                topic_slug=module.topic.slug if module.topic else "",
                 mastery_score=mastery,
                 quizzes_taken=p.quizzes_taken if p else 0,
                 avg_quiz_score=p.avg_quiz_score if p else 0.0,

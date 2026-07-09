@@ -13,6 +13,8 @@ import {
   LogOut,
   User,
   BookMarked,
+  LayoutDashboard,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -115,12 +117,20 @@ export function Header() {
                       </p>
                     </div>
                     <Link
-                      href="/learn"
+                      href="/dashboard"
                       onClick={() => setDropdownOpen(false)}
                       className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-white/5 transition-colors"
                     >
-                      <BookMarked className="w-3.5 h-3.5" />
-                      My Curricula
+                      <LayoutDashboard className="w-3.5 h-3.5" />
+                      My Dashboard
+                    </Link>
+                    <Link
+                      href="/settings"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-white/5 transition-colors"
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                      Settings
                     </Link>
                     <button
                       onClick={() => { logout(); setDropdownOpen(false); }}
@@ -176,8 +186,11 @@ export function Header() {
             </MobileNavLink>
             {user ? (
               <>
-                <MobileNavLink href="/learn" onClick={() => setMobileOpen(false)}>
-                  My Curricula
+                <MobileNavLink href="/dashboard" onClick={() => setMobileOpen(false)}>
+                  My Dashboard
+                </MobileNavLink>
+                <MobileNavLink href="/settings" onClick={() => setMobileOpen(false)}>
+                  Settings
                 </MobileNavLink>
                 <button
                   onClick={() => { logout(); setMobileOpen(false); }}

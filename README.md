@@ -25,7 +25,7 @@ Erudios solves the biggest pain point in technical learning: **not knowing what 
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/yourname/erudios.git
+git clone https://github.com/xvadel/erudios.git
 cd erudios
 cp .env.example .env
 ```

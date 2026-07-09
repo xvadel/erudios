@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { ProfileSetupModal } from "./ProfileSetupModal";
 import { ModuleContent } from "./ModuleContent";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -431,12 +432,19 @@ export default function LearnPage({ params }: PageProps) {
         )}
       </div>
 
+      {/* AI Tutor floating chat panel — only when curriculum is loaded */}
+      {curriculum && (
+        <ChatPanel
+          topicSlug={activeModule?.topic_slug ?? slug}
+          topicName={activeModule?.topic_name ?? curriculum.topic_name}
+        />
+      )}
+
       {/* Settings / Onboarding modal */}
       <ProfileSetupModal
         isOpen={isProfileModalOpen}
         onClose={() => {
           setIsProfileModalOpen(false);
-          // If closing the onboarding without saving and curriculum not loaded, fallback to default profile creation
           if (!curriculum && !loadingCurriculum) {
             loadCurriculum();
           }

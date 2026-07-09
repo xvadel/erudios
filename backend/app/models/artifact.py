@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -103,6 +103,7 @@ class Quiz(Base):
     )
     # Array of { question, options: [], correct_index, explanation }
     questions: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     cache_key: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
 
     created_at: Mapped[datetime] = mapped_column(

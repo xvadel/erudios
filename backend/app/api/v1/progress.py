@@ -14,10 +14,14 @@ from app.models.user import User
 from app.models.progress import LearningProgress
 from app.models.curriculum import Module, Curriculum
 from app.models.topic import Topic
+from app.models.quiz_attempt import QuizAttempt
 from app.core.exceptions import NotFoundError, ForbiddenError
 from app.schemas.progress import (
     CompleteModuleRequest, QuizResultRequest, ProgressOut, CurriculumProgressOut
 )
+from app.modules.mastery.service import mastery_service
+from app.workers.enqueue import enqueue
+from app.core.metrics import QUIZ_ATTEMPTS
 
 router = APIRouter()
 
@@ -102,25 +106,39 @@ async def submit_quiz_result(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Record a quiz result for a module. Updates rolling average quiz score.
+    Record a quiz result for a module. Updates mastery using EWMA and
+    schedules next review. Enqueues concept mastery updates in background.
     """
     user: User = await get_current_user(request, db)
     module = await _verify_module_ownership(db, user.id, module_id)
 
-    progress = await _get_or_create_progress(db, user.id, module_id)
-
-    # Rolling average
-    total = progress.avg_quiz_score * progress.quizzes_taken + body.score
-    progress.quizzes_taken += 1
-    progress.avg_quiz_score = round(total / progress.quizzes_taken, 1)
-    progress.time_spent_minutes += body.time_spent_minutes
-    progress.last_reviewed = datetime.now(timezone.utc)
-
-    # Update mastery score: weighted 70% quiz, 30% prior mastery
-    progress.mastery_score = round(
-        progress.avg_quiz_score * 0.7 + progress.mastery_score * 0.3, 1
+    # 1. Update mastery synchronously using the MasteryService (EWMA)
+    progress = await mastery_service.record_quiz_result(
+        db=db,
+        user_id=user.id,
+        module_id=module_id,
+        score=body.score,
+        time_spent_minutes=body.time_spent_minutes,
     )
+
+    # 2. Record QuizAttempt row
+    attempt = QuizAttempt(
+        user_id=user.id,
+        quiz_id=body.quiz_id,
+        module_id=module_id,
+        answers_given=body.answers_given,
+        score=body.score,
+        time_taken_seconds=body.time_taken_seconds,
+        difficulty_level=module.difficulty,
+    )
+    db.add(attempt)
     await db.flush()
+
+    # Increment Prometheus counters
+    QUIZ_ATTEMPTS.labels(difficulty=module.difficulty).inc()
+
+    # 3. Dispatch arq job to update concept mastery details asynchronously
+    await enqueue("update_concept_mastery_task", quiz_attempt_id=str(attempt.id))
 
     return ProgressOut(
         module_id=module_id,

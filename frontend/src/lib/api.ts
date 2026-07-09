@@ -348,3 +348,150 @@ export interface HealthResponse {
   };
 }
 
+// ── Intelligence ───────────────────────────────────────────────────────────────
+
+export interface ReviewItem {
+  module_id: string;
+  topic_slug: string;
+  topic_name: string;
+  mastery_score: number;
+  next_review: string;
+}
+
+export interface RecommendationOut {
+  topic_slug: string;
+  topic_name: string;
+  difficulty: string;
+  estimated_hours: number;
+  score: number;
+  reasons: string[];
+  all_prereqs_met: boolean;
+}
+
+export interface ConceptPerformance {
+  concept_label: string;
+  section_slug: string;
+  total_correct: number;
+  total_incorrect: number;
+  accuracy_pct: number;
+}
+
+export interface BlockingPrereq {
+  topic_name: string;
+  prereq_name: string;
+  prereq_slug: string;
+  mastery_score: number;
+}
+
+export interface DailyPlan {
+  review_items: ReviewItem[];
+  new_topics: RecommendationOut[];
+  weak_concepts: ConceptPerformance[];
+  blocking_prereqs: BlockingPrereq[];
+  estimated_minutes: number;
+  brief: string;
+}
+
+export interface LearningSummary {
+  total_mastery_points: number;
+  streak_days: number;
+  total_quizzes_taken: number;
+  learning_velocity: number;
+}
+
+export interface DailyScoreTrend {
+  date: string;
+  avg_score: number;
+}
+
+export async function getDailyPlan(): Promise<DailyPlan> {
+  return request<DailyPlan>("/intelligence/daily-plan");
+}
+
+export async function getReviewQueue(): Promise<ReviewItem[]> {
+  return request<ReviewItem[]>("/intelligence/review-queue");
+}
+
+export async function getLearningSummary(): Promise<LearningSummary> {
+  return request<LearningSummary>("/analytics/summary");
+}
+
+export async function getWeakConcepts(topicSlug: string): Promise<ConceptPerformance[]> {
+  return request<ConceptPerformance[]>(`/analytics/concepts/weak?topic_slug=${topicSlug}`);
+}
+
+export async function getTopicTrends(topicSlug: string, days = 30): Promise<DailyScoreTrend[]> {
+  return request<DailyScoreTrend[]>(`/analytics/trends?topic_slug=${topicSlug}&days=${days}`);
+}
+
+// ── Knowledge Graph ───────────────────────────────────────────────────────────
+
+export interface GraphNodeData {
+  slug: string;
+  name: string;
+  difficulty: string;
+  estimated_hours: number;
+  description: string | null;
+  mastery_score: number;
+  status: "locked" | "unlocked" | "in_progress" | "mastered" | "weak" | "suggested";
+}
+
+export interface GraphNode {
+  id: string;
+  data: GraphNodeData;
+  position: { x: number; y: number };
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  animated: boolean;
+}
+
+export interface ReactFlowGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export async function getTopicGraph(rootSlug: string): Promise<ReactFlowGraph> {
+  return request<ReactFlowGraph>(`/graph/${rootSlug}`);
+}
+
+// ── Resource Feedback ─────────────────────────────────────────────────────────
+
+export interface ResourceOut {
+  id: string;
+  title: string;
+  url: string;
+  source_type: string;
+  author: string | null;
+  published_at: string | null;
+  trust_score: number;
+  quality_score: number;
+  composite_score: number;
+  user_feedback: ResourceFeedback | null;
+}
+
+export interface ResourceFeedback {
+  resource_id: string;
+  rating: number;
+  bookmarked: boolean;
+  completed: boolean;
+  time_spent_seconds: number;
+}
+
+export async function submitResourceFeedback(
+  resourceId: string,
+  data: { rating?: number; bookmarked?: boolean; completed?: boolean; time_spent_seconds?: number }
+): Promise<ResourceFeedback> {
+  return request<ResourceFeedback>(`/resources/${resourceId}/feedback`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getUserBookmarks(): Promise<ResourceOut[]> {
+  return request<ResourceOut[]>("/resources/bookmarks");
+}
+

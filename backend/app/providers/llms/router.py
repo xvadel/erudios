@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import structlog
 
 from app.providers.llms.base import LLMProvider, LLMResponse
@@ -9,6 +10,7 @@ from app.providers.llms.groq import GroqProvider
 from app.providers.llms.huggingface import HuggingFaceProvider
 from app.config import settings
 from app.core.exceptions import ProviderExhaustedError, ConfigurationError
+from app.core.metrics import LLM_REQUESTS, LLM_TOKENS, LLM_LATENCY
 
 log = structlog.get_logger()
 
@@ -113,6 +115,7 @@ class ProviderRouter:
                     provider=provider_id,
                     estimated_tokens=estimated_tokens,
                 )
+                start_time = time.perf_counter()
                 response = await provider.generate(
                     prompt=prompt,
                     system_prompt=system_prompt,
@@ -120,11 +123,20 @@ class ProviderRouter:
                     max_tokens=max_tokens,
                     json_mode=json_mode,
                 )
+                duration = time.perf_counter() - start_time
+                
+                LLM_LATENCY.labels(provider=provider_id, task_type=task).observe(duration)
+                LLM_REQUESTS.labels(provider=provider_id, task_type=task, status="success").inc()
+                LLM_TOKENS.labels(provider=provider_id, token_type="input").inc(response.tokens_input)
+                LLM_TOKENS.labels(provider=provider_id, token_type="output").inc(response.tokens_output)
+                LLM_TOKENS.labels(provider=provider_id, token_type="total").inc(response.total_tokens)
+
                 # Record actual usage
                 await self._tracker.record_usage(provider_id, response.total_tokens)
                 return response
 
             except Exception as exc:
+                LLM_REQUESTS.labels(provider=provider_id, task_type=task, status="error").inc()
                 log.error(
                     "Provider failed, trying next",
                     provider=provider_id,

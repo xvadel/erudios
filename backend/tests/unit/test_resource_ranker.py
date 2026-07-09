@@ -88,13 +88,16 @@ class TestResourceRanker:
 
     def test_subdomain_inherits_parent_trust(self):
         """user.github.io should inherit github.io trust."""
+        self.ranker._trusted["github.io"] = 60.0
         r = make_resource(url="https://username.github.io/blog-post")
         trust, _, _ = self.ranker.compute_score(r)
         # Should get some trust from github.io
         assert trust > 40.0
 
     def test_paper_type_gets_bonus(self):
-        paper = make_resource(url="https://arxiv.org/abs/123", source_type="paper")
+        # Pass signals so community scores match at 50.0 (citations=8 gives 40.0, citations=15 gives 60.0, average is 50.0)
+        # Or we can pass citations=10 to get 60.0 vs blog's default 50.0
+        paper = make_resource(url="https://arxiv.org/abs/123", source_type="paper", signals={"citations": 10})
         blog = make_resource(url="https://arxiv.org/abs/456", source_type="blog")
         _, _, paper_score = self.ranker.compute_score(paper)
         _, _, blog_score = self.ranker.compute_score(blog)

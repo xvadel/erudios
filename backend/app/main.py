@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.config import settings
 from app.api.v1.router import api_router
@@ -12,7 +13,11 @@ from app.db.session import engine, AsyncSessionLocal
 from app.db.base import Base
 from app.core.exceptions import register_exception_handlers
 from app.services.cache import cache_service
+from app.core.logging import configure_logging
+from app.core.middleware import RequestIDMiddleware
 
+# Setup logging immediately
+configure_logging(settings.APP_ENV)
 log = structlog.get_logger()
 
 
@@ -60,6 +65,7 @@ def create_app() -> FastAPI:
     )
 
     # ── Middleware ────────────────────────────────────────────────────────────
+    app.add_middleware(RequestIDMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
@@ -70,6 +76,9 @@ def create_app() -> FastAPI:
 
     # ── Exception handlers ────────────────────────────────────────────────────
     register_exception_handlers(app)
+
+    # ── Prometheus Instrumentation ───────────────────────────────────────────
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
     # ── Routers ───────────────────────────────────────────────────────────────
     app.include_router(api_router, prefix="/api/v1")

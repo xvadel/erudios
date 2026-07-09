@@ -7,11 +7,14 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
-from app.main import app
+from app.config import settings
+TEST_DATABASE_URL = "postgresql+asyncpg://erudios:erudios@localhost:5432/erudios_test"
+settings.DATABASE_URL = TEST_DATABASE_URL
+
+import app.models  # Ensure all models are registered on Base.metadata
+from app.main import app as fastapi_app
 from app.db.base import Base
 from app.db.session import get_db
-
-TEST_DATABASE_URL = "postgresql+asyncpg://erudios:erudios@localhost:5432/erudios_test"
 
 engine_test = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
 TestSessionLocal = async_sessionmaker(engine_test, expire_on_commit=False)
@@ -40,7 +43,7 @@ async def client(db: AsyncSession):
     async def override_get_db():
         yield db
 
-    app.dependency_overrides[get_db] = override_get_db
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    fastapi_app.dependency_overrides[get_db] = override_get_db
+    async with AsyncClient(transport=ASGITransport(app=fastapi_app), base_url="http://test") as c:
         yield c
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()

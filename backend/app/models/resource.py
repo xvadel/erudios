@@ -31,6 +31,8 @@ class Resource(Base):
     trust_score: Mapped[float] = mapped_column(Float, nullable=False, default=50.0)
     quality_score: Mapped[float] = mapped_column(Float, nullable=False, default=50.0)
     composite_score: Mapped[float] = mapped_column(Float, nullable=False, default=50.0)
+    feedback_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    feedback_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Health
     is_alive: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

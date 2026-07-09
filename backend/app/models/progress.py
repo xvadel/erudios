@@ -31,6 +31,12 @@ class LearningProgress(Base):
     time_spent_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     sections_completed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
+    best_quiz_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    quiz_attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    streak_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    rag_interactions: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_decay_applied: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     last_reviewed: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     next_review: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

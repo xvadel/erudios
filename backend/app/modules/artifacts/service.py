@@ -452,6 +452,7 @@ Return a JSON array of 5 objects, each with:
 - "options": Array of exactly 4 answer strings (A, B, C, D)
 - "correct_index": Index of the correct answer (0-3)
 - "explanation": 1-2 sentence explanation of why the answer is correct
+- "concept": A short 1-3 word slug describing the specific sub-concept tested (e.g. "scaled-dot-product", "positional-encoding", "backpropagation")
 
 Test conceptual understanding, not memorization. Make distractors plausible.
 Return only the JSON array.
@@ -470,6 +471,16 @@ Return only the JSON array.
             if not isinstance(questions, list):
                 raise ValueError("Quiz response is not a list")
 
+            # Clean and validate concept tags
+            for q in questions:
+                if not isinstance(q, dict):
+                    continue
+                if "concept" not in q or not q["concept"]:
+                    q["concept"] = section_slug
+                # Sanitize the concept tag: slugify
+                from python_slugify import slugify
+                q["concept"] = slugify(str(q["concept"]))
+
             # Persist to Quiz table
             if section_row:
                 quiz_result = await db.execute(
@@ -478,10 +489,12 @@ Return only the JSON array.
                 existing_quiz = quiz_result.scalar_one_or_none()
                 if existing_quiz:
                     existing_quiz.questions = questions
+                    existing_quiz.version += 1
                 else:
                     db.add(Quiz(
                         section_id=section_row.id,
                         questions=questions,
+                        version=1,
                         cache_key=cache_key,
                     ))
                 await db.flush()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ from app.api.v1.auth import get_current_user
 from app.models.user import User
 from app.modules.rag.service import rag_service
 from app.modules.rag.indexer import rag_indexer
+from app.workers.enqueue import enqueue
 from app.schemas.chat import (
     ChatSessionCreate, ChatSessionOut, ChatMessageCreate, ChatMessageOut
 )
@@ -138,7 +139,6 @@ async def send_message(
 @router.post("/topics/{topic_slug}/index", status_code=202)
 async def index_topic_resources(
     topic_slug: str,
-    background_tasks: BackgroundTasks,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
@@ -147,20 +147,5 @@ async def index_topic_resources(
     Returns 202 Accepted immediately — indexing runs in background.
     """
     await get_current_user(request, db)  # Auth required
-    background_tasks.add_task(_index_topic_background, topic_slug)
+    await enqueue("index_topic_resources", topic_slug=topic_slug)
     return {"message": f"Indexing started for topic '{topic_slug}'", "status": "accepted"}
-
-
-# ── Background helpers ────────────────────────────────────────────────────────
-
-async def _index_topic_background(topic_slug: str) -> None:
-    """Background task: index topic resources into Qdrant."""
-    from app.db.session import AsyncSessionLocal
-    import structlog
-    log = structlog.get_logger()
-    async with AsyncSessionLocal() as db:
-        try:
-            count = await rag_indexer.index_topic(db, topic_slug)
-            log.info("Background RAG indexing complete", topic=topic_slug, count=count)
-        except Exception as exc:
-            log.error("Background RAG indexing failed", topic=topic_slug, error=str(exc))

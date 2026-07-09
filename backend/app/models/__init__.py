@@ -11,6 +11,9 @@ from app.models.content import GeneratedContent
 from app.models.progress import LearningProgress
 from app.models.chat import ChatSession, ChatMessage
 from app.models.provider import ProviderUsage
+from app.models.quiz_attempt import QuizAttempt
+from app.models.concept_mastery import ConceptMastery
+from app.models.resource_feedback import ResourceFeedback
 
 __all__ = [
     "User",
@@ -29,4 +32,7 @@ __all__ = [
     "ChatSession",
     "ChatMessage",
     "ProviderUsage",
+    "QuizAttempt",
+    "ConceptMastery",
+    "ResourceFeedback",
 ]

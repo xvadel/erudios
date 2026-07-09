@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, topics, resources, health, curriculum, artifacts, progress, chat, recommendations
+from app.api.v1 import auth, topics, resources, health, curriculum, artifacts, progress, chat, recommendations, analytics, intelligence, graph
 
 api_router = APIRouter()
 
@@ -15,5 +15,8 @@ api_router.include_router(artifacts.router, prefix="/artifacts", tags=["artifact
 api_router.include_router(progress.router, prefix="/progress", tags=["progress"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(recommendations.router, prefix="/recommendations", tags=["recommendations"])
+api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+api_router.include_router(intelligence.router, prefix="/intelligence", tags=["intelligence"])
+api_router.include_router(graph.router, prefix="/graph", tags=["graph"])
 
 

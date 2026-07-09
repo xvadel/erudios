@@ -10,8 +10,11 @@ class CompleteModuleRequest(BaseModel):
 
 
 class QuizResultRequest(BaseModel):
+    quiz_id: uuid.UUID
     score: float = Field(..., ge=0.0, le=100.0, description="Quiz score as percentage 0–100")
+    answers_given: list[int] = Field(default_factory=list)
     time_spent_minutes: int = Field(default=0, ge=0)
+    time_taken_seconds: int = Field(default=0, ge=0)
 
 
 class ProgressOut(BaseModel):

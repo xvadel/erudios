@@ -7,6 +7,7 @@ import structlog
 import redis.asyncio as aioredis
 
 from app.config import settings
+from app.core.metrics import CACHE_OPERATIONS
 
 log = structlog.get_logger()
 
@@ -35,23 +36,39 @@ class CacheService:
         return self._redis
 
     async def get(self, key: str) -> Any | None:
-        raw = await self._client().get(key)
-        if raw is None:
-            return None
         try:
-            return json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            return raw
+            raw = await self._client().get(key)
+            if raw is None:
+                CACHE_OPERATIONS.labels(operation="get", result="miss").inc()
+                return None
+            CACHE_OPERATIONS.labels(operation="get", result="hit").inc()
+            try:
+                return json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                return raw
+        except Exception:
+            CACHE_OPERATIONS.labels(operation="get", result="error").inc()
+            raise
 
     async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
-        serialized = json.dumps(value) if not isinstance(value, str) else value
-        if ttl:
-            await self._client().setex(key, ttl, serialized)
-        else:
-            await self._client().set(key, serialized)
+        try:
+            serialized = json.dumps(value) if not isinstance(value, str) else value
+            if ttl:
+                await self._client().setex(key, ttl, serialized)
+            else:
+                await self._client().set(key, serialized)
+            CACHE_OPERATIONS.labels(operation="set", result="success").inc()
+        except Exception:
+            CACHE_OPERATIONS.labels(operation="set", result="error").inc()
+            raise
 
     async def delete(self, key: str) -> None:
-        await self._client().delete(key)
+        try:
+            await self._client().delete(key)
+            CACHE_OPERATIONS.labels(operation="delete", result="success").inc()
+        except Exception:
+            CACHE_OPERATIONS.labels(operation="delete", result="error").inc()
+            raise
 
     async def exists(self, key: str) -> bool:
         return bool(await self._client().exists(key))

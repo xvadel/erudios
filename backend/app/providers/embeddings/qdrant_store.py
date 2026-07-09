@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import time
 from typing import Any
 import structlog
 
 from app.config import settings
+from app.core.metrics import QDRANT_OPERATIONS, QDRANT_LATENCY
 
 log = structlog.get_logger()
 
@@ -55,13 +57,21 @@ class QdrantStore:
         """Create the collection if it does not exist."""
         from qdrant_client.models import Distance, VectorParams
         client = self._get_client()
-        existing = await client.collection_exists(self._collection)
-        if not existing:
-            await client.create_collection(
-                collection_name=self._collection,
-                vectors_config=VectorParams(size=dimensions, distance=Distance.COSINE),
-            )
-            log.info("Qdrant collection created", collection=self._collection, dim=dimensions)
+        start = time.perf_counter()
+        try:
+            existing = await client.collection_exists(self._collection)
+            if not existing:
+                await client.create_collection(
+                    collection_name=self._collection,
+                    vectors_config=VectorParams(size=dimensions, distance=Distance.COSINE),
+                )
+                log.info("Qdrant collection created", collection=self._collection, dim=dimensions)
+            QDRANT_OPERATIONS.labels(operation="ensure_collection", status="success").inc()
+        except Exception:
+            QDRANT_OPERATIONS.labels(operation="ensure_collection", status="error").inc()
+            raise
+        finally:
+            QDRANT_LATENCY.labels(operation="ensure_collection").observe(time.perf_counter() - start)
 
     async def upsert(
         self,
@@ -76,8 +86,16 @@ class QdrantStore:
             PointStruct(id=id_, vector=vec, payload=payload)
             for id_, vec, payload in zip(ids, vectors, payloads)
         ]
-        await client.upsert(collection_name=self._collection, points=points, wait=True)
-        log.info("Qdrant upsert complete", collection=self._collection, count=len(points))
+        start = time.perf_counter()
+        try:
+            await client.upsert(collection_name=self._collection, points=points, wait=True)
+            log.info("Qdrant upsert complete", collection=self._collection, count=len(points))
+            QDRANT_OPERATIONS.labels(operation="upsert", status="success").inc()
+        except Exception:
+            QDRANT_OPERATIONS.labels(operation="upsert", status="error").inc()
+            raise
+        finally:
+            QDRANT_LATENCY.labels(operation="upsert").observe(time.perf_counter() - start)
 
     async def search(
         self,
@@ -95,17 +113,25 @@ class QdrantStore:
                 must=[FieldCondition(key="topic_slug", match=MatchValue(value=topic_slug))]
             )
 
-        results = await client.search(
-            collection_name=self._collection,
-            query_vector=query_vector,
-            limit=limit,
-            query_filter=query_filter,
-            with_payload=True,
-        )
-        return [
-            SearchResult(id=str(r.id), score=r.score, payload=r.payload or {})
-            for r in results
-        ]
+        start = time.perf_counter()
+        try:
+            results = await client.search(
+                collection_name=self._collection,
+                query_vector=query_vector,
+                limit=limit,
+                query_filter=query_filter,
+                with_payload=True,
+            )
+            QDRANT_OPERATIONS.labels(operation="search", status="success").inc()
+            return [
+                SearchResult(id=str(r.id), score=r.score, payload=r.payload or {})
+                for r in results
+            ]
+        except Exception:
+            QDRANT_OPERATIONS.labels(operation="search", status="error").inc()
+            raise
+        finally:
+            QDRANT_LATENCY.labels(operation="search").observe(time.perf_counter() - start)
 
     async def delete_by_topic(self, topic_slug: str) -> None:
         """Remove all vectors for a given topic (useful for re-indexing)."""

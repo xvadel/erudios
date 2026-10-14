@@ -1,0 +1,49 @@
+{
+  "dependencies": [
+    {"prerequisite": "supervised-learning", "dependent": "model-evaluation", "reason": "You need a trained model to evaluate — supervised learning teaches you how to train one."},
+    {"prerequisite": "supervised-learning", "dependent": "ensemble-methods", "reason": "Ensemble methods combine supervised models, so you need to understand individual models first."},
+    {"prerequisite": "supervised-learning", "dependent": "unsupervised-learning", "reason": "Understanding supervised learning first gives you the mental model to contrast with unsupervised approaches."},
+    {"prerequisite": "feature-engineering", "dependent": "supervised-learning", "reason": "Good features are the input to any ML model — engineering them well directly impacts model performance."},
+
+    {"prerequisite": "neural-networks-fundamentals", "dependent": "cnns", "reason": "CNNs are specialized neural networks — you need to understand the base architecture first."},
+    {"prerequisite": "neural-networks-fundamentals", "dependent": "rnns-lstms", "reason": "RNNs extend the basic neural network with recurrence — foundational concepts apply directly."},
+    {"prerequisite": "neural-networks-fundamentals", "dependent": "transformers", "reason": "Transformers replace recurrence with attention, but share the same neural network building blocks."},
+    {"prerequisite": "transformers", "dependent": "large-language-models", "reason": "LLMs are transformer-based models scaled to billions of parameters — transformers are their foundation."},
+    {"prerequisite": "cnns", "dependent": "image-classification", "reason": "CNNs are the primary architecture for image classification tasks."},
+    {"prerequisite": "cnns", "dependent": "object-detection", "reason": "Object detection builds on CNN feature extraction for localization."},
+    {"prerequisite": "transformers", "dependent": "vision-transformers", "reason": "Vision Transformers directly apply the transformer architecture to image patches."},
+    {"prerequisite": "neural-networks-fundamentals", "dependent": "gans", "reason": "GANs consist of two neural networks — you need to understand both first."},
+    {"prerequisite": "neural-networks-fundamentals", "dependent": "diffusion-models", "reason": "Diffusion models use neural networks for iterative denoising — foundational NN knowledge is required."},
+
+    {"prerequisite": "text-preprocessing", "dependent": "word-embeddings", "reason": "Text preprocessing produces the clean tokens that word embedding models are trained on."},
+    {"prerequisite": "word-embeddings", "dependent": "vector-embeddings", "reason": "Vector embeddings for RAG generalize the concept of word embeddings to full documents and sentences."},
+    {"prerequisite": "large-language-models", "dependent": "prompt-engineering", "reason": "Prompt engineering is the art of communicating with LLMs — you need to understand what LLMs are first."},
+    {"prerequisite": "large-language-models", "dependent": "fine-tuning", "reason": "Fine-tuning adapts pre-trained LLMs — understanding the base model is a prerequisite."},
+    {"prerequisite": "large-language-models", "dependent": "rag", "reason": "RAG augments LLM generation with retrieval — you need to understand LLMs to know what you're augmenting."},
+
+    {"prerequisite": "vector-embeddings", "dependent": "chunking-strategies", "reason": "Chunks are what get embedded — understanding embeddings helps you decide optimal chunk size and boundaries."},
+    {"prerequisite": "chunking-strategies", "dependent": "retrieval-methods", "reason": "Retrieval operates on chunks — you need to understand chunking to reason about retrieval quality."},
+    {"prerequisite": "retrieval-methods", "dependent": "vector-databases", "reason": "Vector databases are the storage backend for retrieval — you need to know what you're retrieving first."},
+    {"prerequisite": "vector-databases", "dependent": "reranking", "reason": "Re-ranking improves the results from a vector database retrieval — you need retrieval working first."},
+    {"prerequisite": "reranking", "dependent": "rag-evaluation", "reason": "Evaluating RAG requires a complete pipeline including re-ranking to measure end-to-end quality."},
+    {"prerequisite": "rag-evaluation", "dependent": "production-rag", "reason": "You can't optimize a production system without knowing how to measure it."},
+    {"prerequisite": "production-rag", "dependent": "agentic-rag", "reason": "Agentic RAG builds on production RAG systems by adding autonomous planning and self-correction."},
+
+    {"prerequisite": "large-language-models", "dependent": "ai-agents", "reason": "AI agents use LLMs as their reasoning core — you must understand LLMs before building agents."},
+    {"prerequisite": "prompt-engineering", "dependent": "ai-agents", "reason": "Effective agent design requires advanced prompting techniques for reasoning and planning."},
+    {"prerequisite": "ai-agents", "dependent": "tool-use", "reason": "Tool use is how agents interact with the external world — it builds directly on agent fundamentals."},
+    {"prerequisite": "tool-use", "dependent": "agent-workflows", "reason": "Workflows orchestrate agents and tools — understanding individual tool calls comes first."},
+    {"prerequisite": "agent-workflows", "dependent": "multi-agent-systems", "reason": "Multi-agent systems coordinate multiple workflow instances — single-agent workflows must be mastered first."},
+    {"prerequisite": "rag", "dependent": "agentic-rag", "reason": "Agentic RAG extends standard RAG with autonomous retrieval planning."},
+
+    {"prerequisite": "model-evaluation", "dependent": "experiment-tracking", "reason": "Experiment tracking records the metrics you learn to compute during model evaluation."},
+    {"prerequisite": "supervised-learning", "dependent": "model-serving", "reason": "You can only serve a model you know how to build — supervised learning provides that foundation."},
+    {"prerequisite": "model-serving", "dependent": "model-monitoring", "reason": "You monitor what you serve — model serving must be in place before monitoring makes sense."},
+    {"prerequisite": "model-serving", "dependent": "ml-cicd", "reason": "CI/CD for ML automates the path from training to serving — serving knowledge is prerequisite."},
+
+    {"prerequisite": "supervised-learning", "dependent": "q-learning", "reason": "Q-learning shares concepts with supervised learning (value estimation) — a strong ML foundation helps."},
+    {"prerequisite": "neural-networks-fundamentals", "dependent": "policy-gradient", "reason": "Policy gradient methods use neural networks as policy approximators."},
+    {"prerequisite": "policy-gradient", "dependent": "rlhf", "reason": "RLHF uses policy gradient algorithms (PPO) to align LLMs — understanding PPO is essential."},
+    {"prerequisite": "large-language-models", "dependent": "rlhf", "reason": "RLHF is specifically about aligning LLMs — you need to know what an LLM is before aligning one."}
+  ]
+}
